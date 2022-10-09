@@ -1,2 +1,2 @@
 # quanty
-Framework to computing dynamics of quantum system
+Framework to computing dynamic of quantum system
