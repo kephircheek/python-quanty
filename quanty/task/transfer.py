@@ -548,6 +548,8 @@ class ZeroCoherenceTransfer:
         fsolve=True,
         verbose=True,
     ):
+        method_kwargs = method_kwargs.copy()
+
         def loss_residual(features):
             self.features = features
             return np.max(np.abs(self.perfect_transferred_state_residuals()))
