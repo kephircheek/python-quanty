@@ -243,12 +243,12 @@ class ZeroCoherenceTransfer:
     def dict(self):
         return {
             "length": self._len,
-            "sender": self._s_nodes,
-            "receiver": self_r_nodes,
-            "ancillas": self_a_nodes,
+            "sender": tuple(self._s_nodes),
+            "receiver": tuple(self._r_nodes),
+            "ancillas": tuple(self._a_nodes),
             "transmission_time": self._tt,
-            "features": self._features,
-            "hamiltonian": self._h,
+            "features": self._features.tolist(),
+            "hamiltonian": self._h.__class__.__name__,
         }
 
     def info(self):
