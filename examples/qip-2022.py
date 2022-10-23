@@ -1,10 +1,6 @@
 """
 Bochkin et al. QIP 2022
 """
-import sys
-
-sys.path.append(sys.path[0] + "/..")
-
 import numpy as np
 
 from quanty import matrix
