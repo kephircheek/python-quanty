@@ -49,13 +49,20 @@ def _xx_pure(n, dc=None, ex=None, dtype=np.float64):
         if dc_ == 0 or dc_ is None:
             continue
 
+        n_remain = n - 2
+        basis_remain = []
+        if ex is None:
+            basis_remain = ComputationBasis(n_remain)
+        elif (_ex := ex - 1) >= 0:
+            basis_remain = ComputationBasis(n_remain, excitations=_ex)
+
         # only |...0...1...><...1...0...| non zero element of I^+I^-
         indices = (
             (
                 basis.index(ivec.insert(BaseVector.from_str("01"), {i, j})),
                 basis.index(ivec.insert(BaseVector.from_str("10"), {i, j})),
             )
-            for ivec in ComputationBasis(n - 2, excitations=((ex - 1) if ex else None))
+            for ivec in basis_remain
         )
         for irow, icol in indices:
             ham[irow, icol] = dc_ / 2
