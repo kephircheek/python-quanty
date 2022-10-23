@@ -1,3 +1,4 @@
+import math
 import unittest
 
 from quanty.basis import BaseVector, ComputationBasis
@@ -38,6 +39,11 @@ class TestComputationBasis(unittest.TestCase):
             _quanty.base_vector(v, n)[::-1] for v in _quanty.computation_basis(n, ex)
         ]
         self.assertListEqual(basis_desired, list(map(str, basis)))
+
+    def test_large_basis_size(self):
+        n, ex = 256, 2
+        basis = ComputationBasis(n, ex)
+        self.assertEqual(1 + n + math.comb(n, 2), len(basis))
 
 
 class TestBaseVector(unittest.TestCase):

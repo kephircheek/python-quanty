@@ -28,10 +28,10 @@ class BaseVector:
         return self._v
 
     def __hash__(self):
-        return int(self)
+        return hash(str(self))
 
     def __eq__(self, other):
-        return hash(self) == hash(other)
+        return self._v == other._v and self._n == other._n
 
     def append(self, other):
         return BaseVector.from_str(str(self) + str(other))
