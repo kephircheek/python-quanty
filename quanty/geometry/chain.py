@@ -37,6 +37,8 @@ class ZigZagChain(Chain):
             Default equal to `ra`.
 
         """
+        if angle >= np.pi / 2 or angle < -np.pi / 2:
+            raise ValueError(f"angle should be in semi-interval [0, pi/2), not {angle}")
         self._angle = angle
         self._ra = ra
         self._rb = rb
