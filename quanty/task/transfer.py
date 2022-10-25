@@ -278,7 +278,9 @@ class ZeroCoherenceTransfer:
         )
 
     @functools.lru_cache(maxsize=None)
-    def fit_transmission_time(self, decimals=5, tmin=None, tmax=None, states=None):
+    def fit_transmission_time(
+        self, decimals=5, tmin=None, tmax=None, log10_dt=1, states=None
+    ):
         states = states or [
             s
             for s in ComputationBasis(len(self._s_nodes), excitations=self.ex)
@@ -297,8 +299,7 @@ class ZeroCoherenceTransfer:
         t_transmition = None
         data = []
         # for dt in 10.0**np.arange(, (-decimals if decimals > 0 else 0) - 1, -1):
-        time_order = int(np.log10(abs(tmin - tmax)))
-        dt_init = time_order if time_order < 1 else 1
+        dt_init = min(int(np.log10(abs(tmin - tmax))), log10_dt)
         for dt in 10.0 ** np.arange(dt_init, (-decimals if decimals > 0 else 0) - 1, -1):
             U_dt = self._h.U(self._len, dt, ex=self.ex)
             U = self._h.U(self._len, tmin, ex=self.ex) if tmin > 0 else np.eye(len(basis))
