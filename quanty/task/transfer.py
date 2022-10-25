@@ -95,6 +95,8 @@ class ZeroCoherenceTransfer:
         self._ex = excitations
         self._h = hamiltonian
         self._tt = transmission_time
+
+        self._features = None
         if features is not None and (n := len(features)) != self.n_features:
             raise ValueError(
                 "wrong number of unitary transform parameters: "
