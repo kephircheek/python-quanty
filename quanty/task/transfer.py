@@ -90,7 +90,9 @@ class ZeroCoherenceTransfer:
         self._len = length
 
         if (g := hamiltonian.model.geometry) and not isinstance(g, Chain):
-            raise ValueError("state transfer is possible only along a chain, not a {g!r}")
+            raise ValueError(
+                f"state transfer is possible only along a chain, not a {g!r}"
+            )
 
         self._ex = excitations
         self._h = hamiltonian
