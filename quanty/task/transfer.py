@@ -124,6 +124,10 @@ class ZeroCoherenceTransfer:
         )
 
     @property
+    def length(self):
+        return self._len
+
+    @property
     def ex(self):
         return self._ex
 
