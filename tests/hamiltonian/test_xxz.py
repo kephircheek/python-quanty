@@ -18,8 +18,7 @@ class TestHomogeneusZigZagChainWithRightAngle(unittest.TestCase):
     def test_matrix_n3_ex2(self):
         n, ex = 3, 2
         actual = self.ham(n, ex)
-        obasis = ComputationBasis(n, excitations=ex)
-        obasis.sort(key=lambda v: v.excitations)
+        obasis = ComputationBasis(n, excitations=ex).sorted_by_excitation()
         actual = ComputationBasis.reorder_(actual, obasis)
         data = """{
             {-0.768011, 0, 0, 0, 0, 0, 0},

@@ -139,9 +139,7 @@ class ZeroCoherenceTransfer:
 
     @functools.cached_property
     def basis(self):
-        basis = ComputationBasis(self._len, self.ex)
-        basis.sort()
-        return basis
+        return ComputationBasis(self._len, self.ex).sorted_by_excitation()
 
     def _is_extra_element(self, i, j):
         """
@@ -184,8 +182,9 @@ class ZeroCoherenceTransfer:
 
     @functools.cached_property
     def sender_basis(self):
-        basis = ComputationBasis(n=len(self._s_nodes), excitations=self.ex)
-        basis.sort()
+        basis = ComputationBasis(
+            n=len(self._s_nodes), excitations=self.ex
+        ).sorted_by_excitation()
         return basis
 
     @functools.cached_property
@@ -194,8 +193,7 @@ class ZeroCoherenceTransfer:
 
     @functools.cached_property
     def receiver_basis(self):
-        basis = ComputationBasis(len(self._r_nodes), self.ex)
-        basis.sort()
+        basis = ComputationBasis(len(self._r_nodes), self.ex).sorted_by_excitation()
         return basis
 
     @functools.cached_property
@@ -208,8 +206,7 @@ class ZeroCoherenceTransfer:
 
     @property
     def extended_receiver_basis(self):
-        basis = ComputationBasis(len(self._er_nodes), self.ex)
-        basis.sort()
+        basis = ComputationBasis(len(self._er_nodes), self.ex).sorted_by_excitation()
         return basis
 
     @property
@@ -469,8 +466,7 @@ class ZeroCoherenceTransfer:
         return mat
 
     def _heuristic_receiver_reversing(self, receiver_rho: matrix.Matrix) -> matrix.Matrix:
-        receiver_basis_reversed = self.receiver_basis.copy()
-        receiver_basis_reversed.reverse()
+        receiver_basis_reversed = self.receiver_basis.reversed()
         return swap_corners(
             self.receiver_basis.reorder(receiver_rho, receiver_basis_reversed)
         )

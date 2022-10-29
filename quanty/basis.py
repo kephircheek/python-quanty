@@ -40,7 +40,7 @@ class BaseVector:
         """
         Return `i`-th base vecotor  in full basis set in system with `n` particles.
 
-        NB! Numeration statrs from one.
+        NB! Numeration starts from one.
 
         Examples
         --------
@@ -61,26 +61,29 @@ class BaseVector:
 
 
 class ComputationBasis:
-    def __init__(self, n, excitations=None):
+    def __init__(
+        self, n: int, excitations: int = None, vectors: list[BaseVector | int] = None
+    ):
         self._n = n
         self._ex = excitations
-        self._basis = None if excitations is None else self._basis_dict(n, excitations)
-
-    @staticmethod
-    def _basis_dict(n, excitations):
-        return OrderedDict(
-            (BaseVector(b, n), i)
-            for i, b in enumerate(computation_basis(n, ex=excitations))
+        self.__vectors = (
+            None
+            if vectors is None
+            else OrderedDict((v, i) for i, v in enumerate(vectors))
         )
 
-    def copy(self):
-        basis = ComputationBasis(self.n, self.ex)
-        basis._basis = self._basis.copy()
-        return basis
+    @property
+    def _vectors(self):
+        if self.__vectors is None and self._ex is not None:
+            return computation_basis_enumerated(self._n, self._ex)
+        return self.__vectors
 
     @property
-    def basis(self):
-        return self._basis or self._basis_dict(self._n, self._ex)
+    def vectors(self):
+        return tuple(self._vectors)
+
+    def copy(self):
+        return ComputationBasis(n=self.n, excitations=self.ex, vectors=self.vectors)
 
     @property
     def n(self):
@@ -95,31 +98,33 @@ class ComputationBasis:
         return self.excitations
 
     def __iter__(self):
-        if self._basis:
-            return iter(self._basis.keys())
+        if self._vectors is not None:
+            return iter(self._vectors.keys())
         return (BaseVector(i, self._n) for i in range(2**self._n))
 
     def __len__(self):
-        if self._basis:
-            return len(self._basis)
+        if self._vectors is not None:
+            return len(self._vectors)
         return 2**self._n
 
     def index(self, vector):  # reindex
-        if self._basis is None:
+        if self._ex is None:
             return int(vector)
-        return self._basis[vector]
+        return self._vectors[vector]
 
-    def sort(self, key=None):
-        key = key or (lambda v: (v.excitations, int(v)))
-        basis = sorted(self.basis, key=key)
-        self._basis = OrderedDict((v, i) for i, v in enumerate(basis))
+    def sorted(self, key):
+        vectors = sorted(self.vectors, key=key)
+        return self.__class__(self._n, self._ex, vectors=vectors)
+
+    def sorted_by_excitation(self):
+        return self.sorted(key=lambda v: (v.excitations, int(v)))
 
     def reorder(self, rho, basis):
         import quanty.matrix
 
         rho_ = quanty.matrix.zeros_like(rho)
         for (ir, r), (ic, c) in itertools.product(
-            enumerate(self._basis), enumerate(self._basis)
+            enumerate(self._vectors), enumerate(self._vectors)
         ):
             ir_, ic_ = basis.index(r), basis.index(c)
             rho_[ir_, ic_] = rho[ir, ic]
@@ -128,14 +133,12 @@ class ComputationBasis:
 
     @classmethod
     def reorder_(cls, rho, basis):
-        basis_ = cls(basis.n, basis.ex)
-        return basis_.reorder(rho, basis)
+        return cls(basis.n, basis.ex).reorder(rho, basis)
 
-    def reverse(self):  # like reverse_order
+    def reversed(self):  # like reverse_order
         """Reverse spin sequence."""
-        self._basis = OrderedDict(
-            ((BaseVector.from_str(str(v)[::-1]), i) for v, i in self._basis.items())
-        )
+        vectors = (BaseVector.from_str(str(v)[::-1]) for v in self._vectors)
+        return ComputationBasis(self._n, self._ex, vectors=vectors)
 
 
 @functools.lru_cache()
@@ -186,3 +189,10 @@ if __name__ == "__main__":
     import doctest
 
     doctest.testmod(verbose=True)
+
+@functools.lru_cache(maxsize=None)
+def computation_basis_enumerated(n, ex=None, only=False):
+    return OrderedDict(
+        (BaseVector(b, n), i)
+        for i, b in enumerate(computation_basis(n=n, ex=ex))
+    )

@@ -30,8 +30,7 @@ class TestZeroCoherence(unittest.TestCase):
 
     def test_n3_ex2_ordered_by_ex(self):
         n, ex = 3, 2
-        obasis = ComputationBasis(n, ex)
-        obasis.sort()
+        obasis = ComputationBasis(n, ex).sorted_by_excitation()
         variables, mat_ordered = coherence_matrix(0, obasis)
         self.assertEqual(len(matrix.get_diagonal_blocks_edges(variables.values())), 3)
 

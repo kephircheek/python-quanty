@@ -18,14 +18,12 @@ class TestComputationBasis(unittest.TestCase):
     def test_sorting_by_excitation(self):
         n = 3
         excitations = 2
-        basis = ComputationBasis(n, excitations=excitations)
-        basis.sort(key=lambda v: v.excitations)
+        basis = ComputationBasis(n, excitations=excitations).sorted_by_excitation()
         self.assertListEqual(list(map(int, basis)), [0, 1, 2, 4, 3, 5, 6])
 
     def test_reverse_n3_ex1(self):
         n, ex = 3, 1
-        reversed_basis = ComputationBasis(n, excitations=ex)
-        reversed_basis.reverse()
+        reversed_basis = ComputationBasis(n, excitations=ex).reversed()
         self.assertListEqual(
             ["000", "100", "010", "001"],
             list(map(str, reversed_basis)),
@@ -33,8 +31,7 @@ class TestComputationBasis(unittest.TestCase):
 
     def test_reverse(self):
         n, ex = 3, 1
-        basis = ComputationBasis(n, ex)
-        basis.reverse()
+        basis = ComputationBasis(n, ex).reversed()
         basis_desired = [
             _quanty.base_vector(v, n)[::-1] for v in _quanty.computation_basis(n, ex)
         ]
