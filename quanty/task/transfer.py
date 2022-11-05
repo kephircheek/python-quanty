@@ -3,6 +3,7 @@ import functools
 import math
 import warnings
 from typing import Set
+from dataclasses import dataclass, asdict
 
 import numpy as np
 import sympy as sp
@@ -54,6 +55,7 @@ def swap_corners(rho: matrix.Matrix) -> matrix.Matrix:
     return rho_
 
 
+@dataclass(frozen=True)
 class ZeroCoherenceTransfer:
     """
 
@@ -63,51 +65,51 @@ class ZeroCoherenceTransfer:
         parameters of unitary transform on extended receiver
     """
 
-    def __init__(
-        self,
-        hamiltonian: Hamiltonian,
-        length: int,
-        sender: set[int],
-        receiver: set[int],
-        ancillas: set[int],
-        excitations: int = None,
-        transmission_time: int = None,
-        features=None,
-    ):
-        sender = set(map(lambda i: _positify_indecies(i, length), sender))
-        receiver = set(map(lambda i: _positify_indecies(i, length), receiver))
-        ancillas = set(map(lambda i: _positify_indecies(i, length), ancillas))
+    hamiltonian: Hamiltonian
+    length: int
+    sender: set[int]
+    receiver: set[int]
+    ancillas: set[int]
+    excitations: int = None
+    transmission_time: int = None
+    features = None
 
-        if len(sender) != len(receiver):
+    def __post_init__(self):
+        if len(self.sender) != len(self.receiver):
             raise ValueError("sender and receiver should be the same length")
 
-        if (m := max(sender | receiver | ancillas)) >= length:
-            raise ValueError(f"acquired qubit out of register: {m} >= {length}")
+        def normilize_indecies(indecies):
+            return frozenset(map(lambda i: _positify_indecies(i, self.length), indecies))
 
-        self._s_nodes = sender
-        self._r_nodes = receiver
-        self._a_nodes = ancillas
-        self._len = length
+        object.__setattr__(self, "sender", normilize_indecies(self.sender))
+        object.__setattr__(self, "receiver", normilize_indecies(self.receiver))
+        object.__setattr__(self, "ancillas", normilize_indecies(self.ancillas))
 
-        if (g := hamiltonian.model.geometry) and not isinstance(g, Chain):
+        if (m := max(self.sender | self.receiver | self.ancillas)) >= self.length:
+            raise ValueError(f"acquired qubit out of register: {self.m} >= {self.length}")
+
+        if (g := self.hamiltonian.model.geometry) and not isinstance(g, Chain):
             raise ValueError(
                 f"state transfer is possible only along a chain, not a {g!r}"
             )
 
-        self._ex = excitations
-        self._h = hamiltonian
-        self._tt = transmission_time
-
-        self._features = None
-        if features is not None and (n := len(features)) != self.n_features:
+        if self.features is not None and (n := len(self.features)) != self.n_features:
             raise ValueError(
                 "wrong number of unitary transform parameters: "
                 f"{self.n_features} != {n}"
             )
-        self._features = features
-        self._features_history: list[np.ndarray] = []
+        object.__setattr__(self, "_features_history", [])
+        object.__setattr__(self, "_receiver_state_impacts", None)
 
-        self._receiver_state_impacts = None
+    @property
+    def ex(self):
+        return self.excitations
+
+    def set_features(self, values):
+        if np.any(self.features != values):
+            object.__setattr__(self, "features", values)
+            self._features_history.append(self.features)
+            object.__setattr__(self, "_receiver_state_impacts", None)
 
     @classmethod
     def init_classic(
@@ -125,21 +127,9 @@ class ZeroCoherenceTransfer:
             **kwargs,
         )
 
-    @property
-    def length(self):
-        return self._len
-
-    @property
-    def ex(self):
-        return self._ex
-
-    @property
-    def chain_length(self):
-        return self._len
-
     @functools.cached_property
     def basis(self):
-        return ComputationBasis(self._len, self.ex).sorted_by_excitation()
+        return ComputationBasis(self.length, self.ex).sorted_by_excitation()
 
     def _is_extra_element(self, i, j):
         """
@@ -177,99 +167,54 @@ class ZeroCoherenceTransfer:
         return vs
 
     @functools.cached_property
-    def sender_nodes(self) -> Set[int]:
-        return self._s_nodes
-
-    @functools.cached_property
     def sender_basis(self):
         basis = ComputationBasis(
-            n=len(self._s_nodes), excitations=self.ex
+            n=len(self.sender), excitations=self.ex
         ).sorted_by_excitation()
         return basis
 
     @functools.cached_property
-    def receiver_nodes(self) -> Set[int]:
-        return self._r_nodes
-
-    @functools.cached_property
     def receiver_basis(self):
-        basis = ComputationBasis(len(self._r_nodes), self.ex).sorted_by_excitation()
+        basis = ComputationBasis(len(self.receiver), self.ex).sorted_by_excitation()
         return basis
 
     @functools.cached_property
-    def _er_nodes(self):
-        return self._r_nodes | self._a_nodes
+    def ext_receiver(self):
+        return self.receiver | self.ancillas
 
-    @property
-    def extended_receiver_nodes(self):
-        return self._er_nodes
-
-    @property
-    def extended_receiver_basis(self):
-        basis = ComputationBasis(len(self._er_nodes), self.ex).sorted_by_excitation()
+    @functools.cached_property
+    def ext_receiver_basis(self):
+        basis = ComputationBasis(len(self.ext_receiver), self.ex).sorted_by_excitation()
         return basis
-
-    @property
-    def ancilla_nodes(self) -> Set[int]:
-        return self._a_nodes
-
-    @property
-    def transmission_time(self):
-        return self._tt
-
-    @property
-    def features(self):
-        return self._features
-
-    @features.setter
-    def features(self, values):
-        if np.any(self._features != values):
-            self._features_history.append(self._features)
-            self._features = values
-            self._receiver_state_impacts = None
 
     @functools.cached_property
     def n_features(self):
-        if self._features is not None:
-            return len(self._features)
-
         return sum(
-            (lambda x: x**2 - x)(math.comb(len(self._er_nodes), i + 1))
+            (lambda x: x**2 - x)(math.comb(len(self.ext_receiver), i + 1))
             for i in range(self.ex)
         )
-
-        raise NotImplementedError(f"unsupported excitation number: {self.ex}")
 
     @functools.cached_property
     def _feature_bounds_default(self):
         return [(0, 2 * np.pi) for _ in range(self.n_features)]
 
-    @property
-    def dict(self):
-        return {
-            "length": self._len,
-            "sender": tuple(self._s_nodes),
-            "receiver": tuple(self._r_nodes),
-            "ancillas": tuple(self._a_nodes),
-            "transmission_time": self._tt,
-            "features": self._features.tolist(),
-            "hamiltonian": self._h.__class__.__name__,
-        }
+    def load(self, data):
+        data["hamiltonian"].pop("__class__")
 
     def info(self):
         print(
-            f"{self._h.model.geometry.__class__.__name__}:",
+            f"{self.hamiltonian.model.geometry.__class__.__name__}:",
             ", ".join(
-                sorted([str(i) for i in self._s_nodes])
+                sorted([str(i) for i in self.sender])
                 + ["..."]
                 + [
-                    f"({i})" if i not in self._r_nodes else str(i)
-                    for i in sorted(list(self._er_nodes))
+                    f"({i})" if i not in self.receiver else str(i)
+                    for i in sorted(list(self.ext_receiver))
                 ]
             ),
         )
         print(
-            f"Length of chain (n): {self._len}",
+            f"Length of chain (n): {self.length}",
             f"Number of parameters of unitary transform on ext receiver: {self.n_features}",
             f"Number of parameters of sender state: {len(self.sender_params)}",
             f"Number of equation to drop extra receiver elements: {self.n_equations}",
@@ -282,17 +227,17 @@ class ZeroCoherenceTransfer:
     ):
         states = states or [
             s
-            for s in ComputationBasis(len(self._s_nodes), excitations=self.ex)
+            for s in ComputationBasis(len(self.sender), excitations=self.ex)
             if s.excitations == self.ex
         ]
-        system_state = BaseVector(0, self._len - len(self._s_nodes))
-        basis = ComputationBasis(self._len, excitations=self.ex)
+        system_state = BaseVector(0, self.length - len(self.sender))
+        basis = ComputationBasis(self.length, excitations=self.ex)
 
-        tmin = tmin or self._len // 2
-        tmax = tmax or 2 * self._len
+        tmin = tmin or self.length // 2
+        tmax = tmax or 2 * self.length
 
         i_elements = [
-            basis.index(system_state.insert(state, self._s_nodes)) for state in states
+            basis.index(system_state.insert(state, self.sender)) for state in states
         ]
 
         t_transmition = None
@@ -300,8 +245,12 @@ class ZeroCoherenceTransfer:
         # for dt in 10.0**np.arange(, (-decimals if decimals > 0 else 0) - 1, -1):
         dt_init = min(int(np.log10(abs(tmin - tmax))), log10_dt)
         for dt in 10.0 ** np.arange(dt_init, (-decimals if decimals > 0 else 0) - 1, -1):
-            U_dt = self._h.U(self._len, dt, ex=self.ex)
-            U = self._h.U(self._len, tmin, ex=self.ex) if tmin > 0 else np.eye(len(basis))
+            U_dt = self.hamiltonian.U(self.length, dt, ex=self.ex)
+            U = (
+                self.hamiltonian.U(self.length, tmin, ex=self.ex)
+                if tmin > 0
+                else np.eye(len(basis))
+            )
             max_loss = 0
             for t in np.arange(tmin, tmax + dt, dt):
                 if t > tmax:
@@ -314,7 +263,7 @@ class ZeroCoherenceTransfer:
                                 (matrix.element_impact(i, i, U) for i in i_elements),
                                 np.zeros((len(basis), len(basis))),
                             ),  # digonal elememts are positive
-                            self._r_nodes,
+                            self.receiver,
                             basis=basis,
                             hermitian=True,
                         )
@@ -329,7 +278,8 @@ class ZeroCoherenceTransfer:
             tmin = (t_transmition - delta) if t_transmition > delta else 0
             tmax = t_transmition + delta
 
-        self._tt = np.round(t_transmition, decimals)
+        tt = np.round(t_transmition, decimals)
+        object.__setattr__(self, "transmission_time", tt)
         return data
 
     @property
@@ -359,15 +309,15 @@ class ZeroCoherenceTransfer:
 
     @functools.cached_property
     def _free_symbol_impacts_to_ext_receiver(self):
-        U = self._h.U(self._len, self._tt, ex=self.ex)
+        U = self.hamiltonian.U(self.length, self.transmission_time, ex=self.ex)
         oU = ComputationBasis.reorder_(U, self.basis)
         rho_init_dok = self.initial_state_dok
         return {
             s: matrix.reduce(
                 self._free_symbol_impact(s, rho_init_dok, oU),
-                self._er_nodes,
+                self.ext_receiver,
                 basis=self.basis.copy(),
-                subsystem_basis=self.extended_receiver_basis.copy(),
+                subsystem_basis=self.ext_receiver_basis.copy(),
                 hermitian=False,
             )
             for s in self.sender_params
@@ -392,7 +342,7 @@ class ZeroCoherenceTransfer:
         """
         Unitary transform to drop unnecessary elements in receiver.
         """
-        u = np.eye(len(self.extended_receiver_basis), dtype=complex)
+        u = np.eye(len(self.ext_receiver_basis), dtype=complex)
         if self.features is None:
             return u
 
@@ -401,7 +351,7 @@ class ZeroCoherenceTransfer:
             u[1:, 1:] = u_block
 
         elif self.ex == 2:
-            ex1_block_width = len(self._er_nodes)
+            ex1_block_width = len(self.ext_receiver)
             ex1_block_n_features = ex1_block_width**2 - ex1_block_width
             b1_features = self.features[:ex1_block_n_features]
             b1_u = matrix.unitary_transform_parameterized(b1_features)
@@ -417,8 +367,8 @@ class ZeroCoherenceTransfer:
         return u
 
     @functools.cached_property
-    def extended_receiver_state_impacts(self):
-        if self._tt is None:
+    def ext_receiver_state_impacts(self):
+        if self.transmission_time is None:
             raise ValueError("transmission time is not fitted")
 
         return collections.OrderedDict(
@@ -428,10 +378,10 @@ class ZeroCoherenceTransfer:
             )
         )
 
-    def extended_receiver_state(self, decimals=None) -> sp.MutableDenseMatrix:
-        n = len(self.extended_receiver_basis)
+    def ext_receiver_state(self, decimals=None) -> sp.MutableDenseMatrix:
+        n = len(self.ext_receiver_basis)
         mat = sp.Matrix(sp.ZeroMatrix(n, n))
-        for p, impact in self.extended_receiver_state_impacts.items():
+        for p, impact in self.ext_receiver_state_impacts.items():
             if decimals is not None:
                 impact = impact.round(decimals)
             mat += p * sp.Matrix(impact)
@@ -440,21 +390,21 @@ class ZeroCoherenceTransfer:
     def receiver_state_impacts(self, use_cache=True):
         if self._receiver_state_impacts is not None and use_cache:
             return self._receiver_state_impacts
-        elements_impacts = self.extended_receiver_state_impacts
+        elements_impacts = self.ext_receiver_state_impacts
 
         u = self.unitary_transform
         impacts2r = {}
         for param, impact_ in elements_impacts.items():
             impact = u @ impact_ @ u.conjugate().transpose()
-            nodes = {i - self._len for i in self._r_nodes}
+            nodes = {i - self.length for i in self.receiver}
             impacts2r[param] = matrix.reduce(
                 impact,
                 nodes,
-                basis=self.extended_receiver_basis.copy(),
+                basis=self.ext_receiver_basis.copy(),
                 subsystem_basis=self.receiver_basis.copy(),
             )
 
-        self._receiver_state_impacts = impacts2r
+        object.__setattr__(self, "_receiver_state_impacts", impacts2r)
         return impacts2r
 
     def receiver_state(self, decimals=None, use_cache=True) -> sp.MutableDenseMatrix:
@@ -556,11 +506,11 @@ class ZeroCoherenceTransfer:
         method_kwargs = method_kwargs.copy()
 
         def loss_residual(features):
-            self.features = features
+            self.set_features(features)
             return np.max(np.abs(self.perfect_transferred_state_residuals()))
 
         def loss_target(features):
-            self.features = features
+            self.set_features(features)
             return loss(np.array(self.perfect_transferred_state(), dtype=complex))
 
         def loss_general(features):
@@ -592,12 +542,12 @@ class ZeroCoherenceTransfer:
         if method == "dual_annealing":
             method_kwargs.setdefault("bounds", self._feature_bounds_default)
             res = optimize.dual_annealing(loss_general, **method_kwargs)
-            self.features = res.x
+            self.set_features(res.x)
 
         elif method == "brute_random":
             method_kwargs.setdefault("ranges", self._feature_bounds_default)
             res = brute_random(loss_general, verbose=verbose, **method_kwargs)
-            self.features = res.x
+            self.set_features(res.x)
 
         else:
             raise ValueError(f"unsupported method: {method}")
@@ -605,29 +555,30 @@ class ZeroCoherenceTransfer:
         if polish:
             print("[polish for fsolve]")
             res = optimize.minimize(loss_residual, self.features, method="L-BFGS-B")
-            self.features = res.x
+            self.set_features(res.x)
             print_status()
 
         if fsolve:
             print("[fsolve]")
 
             def residuals(features):
-                self.features = features
+                self.set_features(features)
                 r = self.perfect_transferred_state_residuals(use_cache=False)  # why?
                 return r
 
             if self.n_equations > self.n_features:
-                self.features = optimize.fsolve(
+                self.set_features(optimize.fsolve(
                     lambda x: residuals(x[: self.n_features]),
                     np.hstack(
                         (self.features, [0] * (self.n_equations - self.n_features))
                     ),
-                )[: self.n_features]
+                )[: self.n_features])
             else:
-                self.features = optimize.fsolve(
+                self.set_features(optimize.fsolve(
                     lambda x: np.hstack(
                         (residuals(x), [0] * (self.n_features - self.n_equations))
                     ),
                     self.features,
-                )
+                ))
             print_status()
+

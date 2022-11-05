@@ -5,7 +5,7 @@ from .zz import _zz_pure
 
 class XXZ(Hamiltonian):
     def __call__(self, n, ex: int = None):
-        return _xxz_pure(n, self._model.constant, ex=ex)
+        return _xxz_pure(n, self.model.constant, ex=ex)
 
 
 def _xxz_pure(n, dc=None, ex=None):

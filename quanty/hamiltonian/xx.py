@@ -12,7 +12,7 @@ class XX(Hamiltonian):
     def __call__(self, n: int, ex: int = None):
         return _xx_pure(
             n=n,
-            dc=self._model.constant,
+            dc=self.model.constant,
             ex=ex,
         )
 

@@ -1,7 +1,9 @@
+import json
 import math
 import unittest
 
 from quanty.basis import BaseVector, ComputationBasis
+import quanty.json
 
 from . import _quanty
 
@@ -41,6 +43,56 @@ class TestComputationBasis(unittest.TestCase):
         n, ex = 256, 2
         basis = ComputationBasis(n, ex)
         self.assertEqual(1 + n + math.comb(n, 2), len(basis))
+
+    def test_jsonify_default(self):
+        b = ComputationBasis(5, 3)
+        actual_dump_str = quanty.json.dumps(b, indent=2)
+        actual_dump_obj = json.loads(actual_dump_str)
+        desired_dump_obj = {
+            "__class__": {"__module__": "quanty.basis", "__name__": "ComputationBasis"},
+            "__init__": [[], {"n": 5, "excitations": 3}],
+        }
+        self.assertDictEqual(desired_dump_obj, actual_dump_obj)
+
+    def test_jsonify_reversed(self):
+        self.maxDiff = None
+        b = ComputationBasis(2, 1).reversed()
+        actual_dump_str = quanty.json.dumps(b, indent=2)
+        actual_dump_obj = json.loads(actual_dump_str)
+        desired_dump_obj = {
+            "__class__": {"__module__": "quanty.basis", "__name__": "ComputationBasis"},
+            "__init__": [
+                [],
+                {
+                    "n": 2,
+                    "excitations": 1,
+                    "vectors": [
+                        {
+                            "__class__": {
+                                "__module__": "quanty.basis",
+                                "__name__": "BaseVector",
+                            },
+                            "__init__": [[0, 2], {}],
+                        },
+                        {
+                            "__class__": {
+                                "__module__": "quanty.basis",
+                                "__name__": "BaseVector",
+                            },
+                            "__init__": [[2, 2], {}],
+                        },
+                        {
+                            "__class__": {
+                                "__module__": "quanty.basis",
+                                "__name__": "BaseVector",
+                            },
+                            "__init__": [[1, 2], {}],
+                        },
+                    ],
+                },
+            ],
+        }
+        self.assertDictEqual(desired_dump_obj, actual_dump_obj)
 
 
 class TestBaseVector(unittest.TestCase):

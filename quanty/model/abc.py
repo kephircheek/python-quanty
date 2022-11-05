@@ -1,6 +1,8 @@
+from dataclasses import dataclass
 from quanty.geometry import Geometry
 
 
+@dataclass(frozen=True)
 class Model:
     """
     Model upon geometry.
@@ -17,29 +19,25 @@ class Model:
         Indices of geometry elements which interaction constant equal to one.
     """
 
-    def __init__(
-        self, geometry: Geometry = None, depth: int = None, h_angle=0, norm_on=(0, 1)
-    ):
-        self._geometry = geometry
-        self._depth = depth
-        self._h_angle = h_angle
-        self._norm_on = norm_on
+    geometry: Geometry = None
+    depth: int = None
+    h_angle: float = 0
+    norm_on: tuple[int, int] = (0, 1)
 
-    @property
-    def geometry(self):
-        return self._geometry
+    def __post_init__(self):
+        object.__setattr__(self, "norm_on", tuple(self.norm_on))
 
     def _constant(self, i, j):
         return 1
 
     def constant(self, i, j):
-        if self._depth is not None and abs(i - j) > self._depth:
+        if self.depth is not None and abs(i - j) > self.depth:
             return 0
 
-        if self._norm_on is not None and (i, j) == self._norm_on:
+        if self.norm_on is not None and (i, j) == self.norm_on:
             return 1
 
-        if self._norm_on is None:
+        if self.norm_on is None:
             return self._constant(i, j)
 
         return self._constant(i, j) / self.constant_norm

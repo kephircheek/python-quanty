@@ -1,23 +1,17 @@
 import functools
+from dataclasses import dataclass
 
 import numpy as np
 import sympy as sp
 
 from quanty.matrix import Type
+from quanty.model import Model
 
 
+@dataclass(frozen=True)
 class Hamiltonian:
-    def __init__(self, model, dtype=None):
-        self._model = model
-        self._dtype = dtype  # or Type.NUMPY_NDARRAY
-
-    @property
-    def model(self):
-        return self._model
-
-    @property
-    def dtype(self):
-        return self._dtype
+    model: Model
+    dtype = None
 
     def __call__(self, n: int, ex: int = None):
         raise NotImplementedError

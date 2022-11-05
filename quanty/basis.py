@@ -18,6 +18,9 @@ class BaseVector:
         self._v = vector
         self._n = n
 
+    def as_args_kwargs(self):
+        return (self._v, self._n), {}
+
     def __repr__(self):
         return f"<{self.__class__.__name__}: {self}>"
 
@@ -81,6 +84,19 @@ class ComputationBasis:
     @property
     def vectors(self):
         return tuple(self._vectors)
+
+    def as_args_kwargs(self):
+        if self._ex is None:
+            return tuple(self._n), {}
+
+        if self.__vectors is None:
+            return tuple(), {"n": self._n, "excitations": self._ex}
+
+        return tuple(), {
+            "n": self._n,
+            "excitations": self._ex,
+            "vectors": list(self._vectors),
+        }
 
     def copy(self):
         return ComputationBasis(n=self.n, excitations=self.ex, vectors=self.vectors)

@@ -2,6 +2,7 @@ import itertools
 from collections import OrderedDict
 
 import sympy as sp
+import numpy as np
 
 from quanty import matrix
 from quanty.basis import ComputationBasis
@@ -17,7 +18,7 @@ def coherence_matrix_elements(order, basis, upperright=True):
         j = basis.index(jv)
         variables.append((i, j, True))
         if i != j:
-            variables.extend([(i, j, True), (i, j, False)])
+            variables.append((i, j, False))
     return variables
 
 
@@ -36,3 +37,17 @@ def coherence_matrix(order, basis, var=("x", "y"), dtype=sp.sympify):
             variables.extend([(x, (i, j)), (y, (i, j))])
 
     return OrderedDict(variables), mat
+
+
+def coherence_matrix_unlinearize(order, basis, params, dtype=np.ndarray):
+    mat = matrix.zeros(len(basis), dtype=dtype)
+    params = list(reversed(params))
+    for i, j, real in coherence_matrix_elements(order, basis):
+        p = params.pop()
+        if real:
+            mat[i, j] += p
+        else:
+            mat[i, j] += 1j * p
+            mat[j, i] += -1j * p
+
+    return mat
