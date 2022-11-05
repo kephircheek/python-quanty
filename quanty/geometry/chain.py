@@ -41,8 +41,17 @@ class ZigZagChain(Chain):
 
     @classmethod
     def from_two_chain(cls, r, width, offset=None):
+        """
+        Parameters
+        ----------
+        r: distance between nodes in each chain
+        widht: distance between chains
+        """
         if offset == None:
-            return cls(angle=np.arcsin(width / r), ra=r)
+            offset = r / 2
+            angle = np.arctan(width / offset)
+            ra = np.sqrt(width**2 + offset**2)
+            return cls(angle=angle, ra=ra)
         raise NotImplementedError
 
     @property
