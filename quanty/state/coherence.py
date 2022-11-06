@@ -46,6 +46,8 @@ def coherence_matrix_unlinearize(order, basis, params, dtype=np.ndarray):
         p = params.pop()
         if real:
             mat[i, j] += p
+            if i != j:
+                mat[j, i] += p
         else:
             mat[i, j] += 1j * p
             mat[j, i] += -1j * p
