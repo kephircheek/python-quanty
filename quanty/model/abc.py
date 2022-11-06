@@ -25,7 +25,8 @@ class Model:
     norm_on: tuple[int, int] = (0, 1)
 
     def __post_init__(self):
-        object.__setattr__(self, "norm_on", tuple(self.norm_on))
+        if self.norm_on is not None:
+            object.__setattr__(self, "norm_on", tuple(self.norm_on))
 
     def _constant(self, i, j):
         return 1
