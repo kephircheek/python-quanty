@@ -5,10 +5,12 @@ import json
 
 def default(obj):
     data = {}
-    data = {"__class__": {
-        "__module__": obj.__class__.__module__,
-        "__name__": obj.__class__.__name__,
-    }}
+    data = {
+        "__class__": {
+            "__module__": obj.__class__.__module__,
+            "__name__": obj.__class__.__name__,
+        }
+    }
 
     args, kwargs = None, None
     if isinstance(obj, complex):

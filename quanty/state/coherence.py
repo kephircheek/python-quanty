@@ -39,6 +39,16 @@ def coherence_matrix(order, basis, var=("x", "y"), dtype=sp.sympify):
     return OrderedDict(variables), mat
 
 
+def assert_coherence_matrix_match(order, basis, mat, decimal=14):
+    indecies = {(i, j) for i, j, _ in coherence_matrix_elements(order, basis)}
+    residual_max = max(
+        np.abs(mat[i, j])
+        for i, j in itertools.product(range(len(basis)), range(len(basis)))
+        if (i, j) not in indecies and (j, i) not in indecies
+    )
+    np.testing.assert_almost_equal(residual_max, 0, decimal=decimal)
+
+
 def coherence_matrix_unlinearize(order, basis, params, dtype=np.ndarray):
     mat = matrix.zeros(len(basis), dtype=dtype)
     params = list(reversed(params))

@@ -15,7 +15,11 @@ from quanty.basis import BaseVector, ComputationBasis
 from quanty.geometry.chain import Chain
 from quanty.hamiltonian import Hamiltonian
 from quanty.optimize import brute_random
-from quanty.state.coherence import coherence_matrix
+from quanty.state.coherence import (
+    coherence_matrix,
+    coherence_matrix_unlinearize,
+    assert_coherence_matrix_match,
+)
 from quanty.state.lowtemp import init_low_temp_chain
 from quanty.problem.transfer import TransferAlongChain
 
@@ -107,7 +111,7 @@ def fit_transmission_time(
             if t > tmax:
                 continue
             U = U @ U_dt
-            loss = np.sum(
+            loss = np.mean(
                 np.diag(
                     matrix.reduce(
                         sum(
@@ -158,7 +162,9 @@ class TransferZQCPerfectlyTask:
 
     @functools.cached_property
     def _sender_state_and_variables(self):
-        variables, zero_coherence = coherence_matrix(order=0, basis=self.problem.sender_basis)
+        variables, zero_coherence = coherence_matrix(
+            order=0, basis=self.problem.sender_basis
+        )
         state = free_corners(zero_coherence)
         vs = {
             s: (i, j)
@@ -177,7 +183,6 @@ class TransferZQCPerfectlyTask:
         vs, _ = self._sender_state_and_variables
         return vs
 
-
     @functools.cached_property
     def initial_state(self):
         state = init_low_temp_chain(
@@ -195,11 +200,10 @@ class TransferZQCPerfectlyTask:
     @functools.cached_property
     def _free_symbol_impacts_to_ext_receiver(self):
         U = self.problem.U(self.transmission_time)
-        oU = ComputationBasis.reorder_(U, self.problem.basis)
         rho_init_dok = self.initial_state_dok
         return {
             s: matrix.reduce(
-                self._free_symbol_impact(s, rho_init_dok, oU),
+                self._free_symbol_impact(s, rho_init_dok, U),
                 self.problem.ext_receiver,
                 basis=self.problem.basis,
                 subsystem_basis=self.problem.ext_receiver_basis,
@@ -213,9 +217,7 @@ class TransferZQCPerfectlyTask:
         return sum(
             (
                 coeff * matrix.element_impact(i, j, U)
-                for (i, j), coeff in __class__._free_symbol_entries(
-                    symbol, mat_dok
-                )
+                for (i, j), coeff in __class__._free_symbol_entries(symbol, mat_dok)
             ),
             np.zeros_like(U),
         )
@@ -334,7 +336,6 @@ class TransferZQCPerfectlyTask:
                 stack.append(real)
         return stack
 
-
     def perfect_transferred_state_system(self, use_cache=True):
         params_impact = self.receiver_state_impacts_reversed(use_cache=use_cache)
         impacts_stack = []
@@ -388,7 +389,9 @@ class TransferZQCPerfectlyTask:
         if len(residuals) > 0:
             residual_max = max(residuals)
         params = list(self.perfect_transferred_state_params().values())
-        return TransferZQCPerfectlyResult(task=self, state_params=params, residual_max=residual_max)
+        return TransferZQCPerfectlyResult(
+            task=self, state_params=params, residual_max=residual_max
+        )
 
 
 @dataclass(frozen=True)
@@ -397,3 +400,49 @@ class TransferZQCPerfectlyResult:
     state_params: list[float]
     residual_max: float = None
 
+    def assert_state_params(self, decimal=14):
+        sender_state = coherence_matrix_unlinearize(
+            0, self.task.problem.sender_basis, self.state_params
+        )
+        state = init_low_temp_chain(
+            sender_state,
+            self.task.problem.basis,
+            sender_basis=self.task.problem.sender_basis,
+            dtype=np.complex128,
+        )
+
+        U = self.task.problem.U(self.task.transmission_time)
+        state_eval = U @ state @ U.conjugate().T
+        ext_reciever_state_eval = matrix.reduce(
+            state_eval,
+            self.task.problem.ext_receiver,
+            basis=self.task.problem.basis,
+            subsystem_basis=self.task.problem.ext_receiver_basis,
+            hermitian=False,
+        )
+        u = self.task.unitary_transform
+        ext_reciever_state_eval_tuned = (
+            u @ ext_reciever_state_eval @ u.conjugate().transpose()
+        )
+        reciever_nodes = {
+            i - self.task.problem.length for i in self.task.problem.receiver
+        }
+        reciever_state_eval_tuned = matrix.reduce(
+            ext_reciever_state_eval_tuned,
+            reciever_nodes,
+            basis=self.task.problem.ext_receiver_basis,
+            subsystem_basis=self.task.problem.receiver_basis,
+            hermitian=False,
+        )
+        assert_coherence_matrix_match(
+            0, self.task.problem.receiver_basis, reciever_state_eval_tuned
+        )
+        reciever_state_eval_tuned_reversed = self.task._heuristic_receiver_reversing(
+            reciever_state_eval_tuned
+        )
+        state_params = self.task.linearize_matrix_by_sender_params(
+            reciever_state_eval_tuned_reversed
+        )
+        np.testing.assert_array_almost_equal(
+            self.state_params, state_params, decimal=decimal
+        )

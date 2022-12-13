@@ -567,18 +567,24 @@ class ZeroCoherenceTransfer:
                 return r
 
             if self.n_equations > self.n_features:
-                self.set_features(optimize.fsolve(
-                    lambda x: residuals(x[: self.n_features]),
-                    np.hstack(
-                        (self.features, [0] * (self.n_equations - self.n_features))
-                    ),
-                )[: self.n_features])
+                self.set_features(
+                    optimize.fsolve(
+                        lambda x: residuals(x[: self.n_features]),
+                        np.hstack(
+                            (self.features, [0] * (self.n_equations - self.n_features))
+                        ),
+                    )[: self.n_features]
+                )
             else:
-                self.set_features(optimize.fsolve(
-                    lambda x: np.hstack(
-                        (residuals(x), [0] * (self.n_features - self.n_equations))
-                    ),
-                    self.features,
-                ))
+                self.set_features(
+                    optimize.fsolve(
+                        lambda x: np.hstack(
+                            (residuals(x), [0] * (self.n_features - self.n_equations))
+                        ),
+                        self.features,
+                    )
+                )
             print_status()
 
+    def test_perfect_tras(self):
+        """Return"""

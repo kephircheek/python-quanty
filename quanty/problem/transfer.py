@@ -116,7 +116,6 @@ class TransferAlongChain:
         basis = ComputationBasis(len(self.ext_receiver), self.ex).sorted_by_excitation()
         return basis
 
-
     def info(self):
         print(
             f"{self.hamiltonian.model.geometry}:",
@@ -136,10 +135,8 @@ class TransferAlongChain:
             sep=";\n",
         )
 
-
     @functools.lru_cache(maxsize=1024)
     def U(self, transmission_time: float) -> np.ndarray:
         u = self.hamiltonian.U(self.length, transmission_time, ex=self.ex)
         uo = ComputationBasis.reorder_(u, self.basis)
         return uo
-

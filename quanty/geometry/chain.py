@@ -35,6 +35,7 @@ class ZigZagChain(Chain):
         Default equal to `ra`.
 
     """
+
     angle: float
     ra: float
     rb: float = None

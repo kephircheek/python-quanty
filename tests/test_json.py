@@ -11,9 +11,7 @@ class TestDeSerialization(unittest.TestCase):
         self.assertEqual(cn, cn_)
 
     def test_set(self):
-        s = {1, 2, '3', 1+1j}
+        s = {1, 2, "3", 1 + 1j}
         d = quanty.json.dumps(s)
         s_ = quanty.json.loads(d)
         self.assertSetEqual(s, s_)
-
-

@@ -7,8 +7,8 @@ import sympy as sp
 
 import quanty.tools.json
 import quanty.json
-from quanty.geometry import Chain, UniformChain
-from quanty.hamiltonian import XX, Hamiltonian
+from quanty.geometry import Chain, UniformChain, ZigZagChain
+from quanty.hamiltonian import XX, XXZ, Hamiltonian
 from quanty.model import Homogeneous, Model
 from quanty.task.transfer import ZeroCoherenceTransfer
 from quanty.task.transfer_ import FitTransmissionTimeTask, TransferZQCPerfectlyTask
@@ -50,9 +50,7 @@ class TestZeroCoherenceTransferEx1N15S3A3(unittest.TestCase):
 
     def test_sender_params_number_in_transfer_perfectly_task(self):
         task = TransferZQCPerfectlyTask(self.problem, transmission_time=None)
-        self.assertEqual(
-            len(task.sender_params), (len(self.task.receiver) - 1) ** 2 + 2
-        )
+        self.assertEqual(len(task.sender_params), (len(self.task.receiver) - 1) ** 2 + 2)
 
     def test_sender_params_number(self):
         self.assertEqual(
@@ -62,8 +60,7 @@ class TestZeroCoherenceTransferEx1N15S3A3(unittest.TestCase):
     def test_n_features(self):
         self.assertEqual(
             self.task.n_features,
-            len(self.task.ext_receiver) ** 2
-            - len(self.task.ext_receiver),
+            len(self.task.ext_receiver) ** 2 - len(self.task.ext_receiver),
         )
 
     def test_n_equations(self):
@@ -174,8 +171,29 @@ class TestZeroCoherenceTransferEx3N9S3A0(unittest.TestCase):
         )
 
 
-class TestDump2JSON(unittest.TestCase):
+class TestTransferZQCPerfectlyTransferEx3N9S3A0(unittest.TestCase):
+    def setUp(self):
+        length = 9
+        excitations = 3
+        n_sender = 3
+        tt = 109.7
+        geometry = ZigZagChain.from_two_chain(2, 0.3)
+        model = Homogeneous(geometry, h_angle=0.74)
+        hamiltonian = XXZ(model)
+        problem = TransferAlongChain.init_classic(
+            hamiltonian=hamiltonian,
+            length=length,
+            n_sender=n_sender,
+            excitations=excitations,
+        )
+        self.task = TransferZQCPerfectlyTask(problem, transmission_time=tt)
 
+    def test_assert_state_params(self):
+        r = self.task.run()
+        r.assert_state_params(decimal=14)
+
+
+class TestDump2JSON(unittest.TestCase):
     def test_dumping(self):
         geometry = UniformChain()
         model = Homogeneous(geometry)
