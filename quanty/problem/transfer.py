@@ -137,7 +137,7 @@ class TransferAlongChain:
         )
 
 
-    @functools.lru_cache(maxsize=None)
+    @functools.lru_cache(maxsize=1024)
     def U(self, transmission_time: float) -> np.ndarray:
         u = self.hamiltonian.U(self.length, transmission_time, ex=self.ex)
         uo = ComputationBasis.reorder_(u, self.basis)

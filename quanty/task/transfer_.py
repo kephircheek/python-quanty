@@ -70,7 +70,7 @@ class FitTransmissionTimeResult:
     data: list[tuple[float, float]]
 
 
-@functools.lru_cache(maxsize=None)
+@functools.lru_cache(maxsize=1024)
 def fit_transmission_time(
     problem: TransferAlongChain, decimals=5, tmin=None, tmax=None, log10_dt=1, states=None
 ):

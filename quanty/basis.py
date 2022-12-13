@@ -206,7 +206,7 @@ if __name__ == "__main__":
 
     doctest.testmod(verbose=True)
 
-@functools.lru_cache(maxsize=None)
+@functools.lru_cache(maxsize=1024)
 def computation_basis_enumerated(n, ex=None, only=False):
     return OrderedDict(
         (BaseVector(b, n), i)
