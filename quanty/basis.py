@@ -2,44 +2,37 @@ import functools
 import itertools
 import warnings
 from collections import OrderedDict
+from dataclasses import dataclass
 
 import numpy as np
 
-
+@dataclass(frozen=True)
 class BaseVector:
+    vector: int
+    n: int
+
     @classmethod
     def from_str(cls, vector: str):  # i_base_vector
         return cls(int(vector, 2), len(vector))
 
-    def __init__(self, vector: int, n: int):
-        if vector < 0 or vector >= 2**n:
+    def __post_init__(self):
+        if self.vector < 0 or self.vector >= 2**self.n:
             raise ValueError("number should be non-negative and less than 2^n")
 
-        self._v = vector
-        self._n = n
-
-    def as_args_kwargs(self):
-        return (self._v, self._n), {}
-
-    def __repr__(self):
-        return f"<{self.__class__.__name__}: {self}>"
-
     def __len__(self):
-        return self._n
+        return self.n
 
     def __int__(self):
-        return self._v
+        return self.vector
 
     def __hash__(self):
         return hash(str(self))
 
-    def __eq__(self, other):
-        return self._v == other._v and self._n == other._n
-
     def append(self, other):
         return BaseVector.from_str(str(self) + str(other))
 
-    def __str__(self):  # base_vector
+    @functools.cached_property
+    def bin(self):
         """
         Return `i`-th base vecotor  in full basis set in system with `n` particles.
 
@@ -50,7 +43,10 @@ class BaseVector:
         >>> str(BaseVector(2, 3))
         '010'
         """
-        return bin(self._v)[2:].zfill(self._n)
+        return bin(self.vector)[2:].zfill(self.n)
+
+    def __str__(self):  # base_vector
+        return self.bin
 
     def insert(self, vector, on: set):
         full_vector = str(self)
@@ -58,7 +54,7 @@ class BaseVector:
             full_vector = full_vector[:pos] + str(vector) + full_vector[pos:]
         return self.__class__.from_str(full_vector)
 
-    @property
+    @functools.cached_property
     def excitations(self):
         return sum(map(int, str(self)))
 

@@ -72,21 +72,21 @@ class TestComputationBasis(unittest.TestCase):
                                 "__module__": "quanty.basis",
                                 "__name__": "BaseVector",
                             },
-                            "__init__": [[0, 2], {}],
+                            "__init__": [[], {'n': 2, 'vector': 0}],
                         },
                         {
                             "__class__": {
                                 "__module__": "quanty.basis",
                                 "__name__": "BaseVector",
                             },
-                            "__init__": [[2, 2], {}],
+                            "__init__": [[], {'n': 2, 'vector': 2}],
                         },
                         {
                             "__class__": {
                                 "__module__": "quanty.basis",
                                 "__name__": "BaseVector",
                             },
-                            "__init__": [[1, 2], {}],
+                            "__init__": [[], {'n': 2, 'vector': 1}],
                         },
                     ],
                 },
