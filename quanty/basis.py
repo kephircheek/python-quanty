@@ -25,14 +25,15 @@ class BaseVector:
     def __int__(self):
         return self.vector
 
-    def __hash__(self):
-        return hash(str(self))
 
     def append(self, other):
         return BaseVector.from_str(str(self) + str(other))
 
-    @functools.cached_property
-    def bin(self):
+    def __str__(self):
+        return self.binary()
+
+    @functools.lru_cache(maxsize=1024)
+    def binary(self):
         """
         Return `i`-th base vecotor  in full basis set in system with `n` particles.
 
@@ -45,10 +46,11 @@ class BaseVector:
         """
         return bin(self.vector)[2:].zfill(self.n)
 
-    def __str__(self):  # base_vector
-        return self.bin
-
     def insert(self, vector, on: set):
+       return self.insert_(vector, tuple(on))
+
+    @functools.lru_cache(maxsize=1024)
+    def insert_(self, vector, on: tuple):
         full_vector = str(self)
         for pos, vector in zip(sorted(list(on)), str(vector)):
             full_vector = full_vector[:pos] + str(vector) + full_vector[pos:]
@@ -71,7 +73,7 @@ class ComputationBasis:
             else OrderedDict((v, i) for i, v in enumerate(vectors))
         )
 
-    @property
+    @functools.cached_property
     def _vectors(self):
         if self.__vectors is None and self._ex is not None:
             return computation_basis_enumerated(self._n, self._ex)
@@ -119,6 +121,7 @@ class ComputationBasis:
             return len(self._vectors)
         return 2**self._n
 
+    @functools.lru_cache(maxsize=1024)
     def index(self, vector):  # reindex
         if self._ex is None:
             return int(vector)
@@ -153,7 +156,7 @@ class ComputationBasis:
         return ComputationBasis(self._n, self._ex, vectors=vectors)
 
 
-@functools.lru_cache()
+@functools.lru_cache(maxsize=1024)
 def combination(n, ex):
     # Maybe math.comb ?
     position_combinations = itertools.combinations(range(n), ex)
