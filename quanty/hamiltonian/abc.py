@@ -16,7 +16,6 @@ class Hamiltonian:
     def __call__(self, n: int, ex: int = None):
         raise NotImplementedError
 
-    @functools.lru_cache(maxsize=1024)
     def eigh(self, n: int, ex: int = None):
         """
         Returns:
@@ -38,7 +37,6 @@ class Hamiltonian:
         else:
             raise TypeError(f"unsupported type: {self.dtype}")
 
-    @functools.lru_cache(maxsize=1024)
     def U(self, n: int, dt: float, ex: int = None):
         if self.dtype is None:  # == Type.NUMPY_NDARRAY:
             eigvals, eigvecs = self.eigh(n, ex=ex)
