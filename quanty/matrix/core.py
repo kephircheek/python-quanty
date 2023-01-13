@@ -150,7 +150,7 @@ def element_impact(i, j, U, k=None, m=None):
     return U[k, i] * U[m, j].conjugate()
 
 
-@functools.lru_cache()
+@functools.cache
 def count_nodes(shape, ex=None):
     if shape[0] != shape[1]:
         raise ValueError(f"expected square matrix, got: {shape}")

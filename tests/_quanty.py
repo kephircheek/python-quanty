@@ -33,7 +33,7 @@ def from_mathematica(filename):
         )
 
 
-@functools.lru_cache()
+@functools.cache
 def getpackage(cls):
     if issubclass(cls, sp.matrices.common.MatrixRequired):
         return sp
@@ -44,7 +44,7 @@ def getpackage(cls):
     raise ValueError(f"unknown class: {cls.__name__}")
 
 
-@functools.lru_cache()
+@functools.cache
 def count_nodes(shape, ex=None):
     if shape[0] != shape[1]:
         raise ValueError(f"expected square matrix, got: {shape}")
@@ -62,7 +62,7 @@ def count_nodes(shape, ex=None):
     raise ValueError("could not calculate number of spins")
 
 
-@functools.lru_cache()
+@functools.cache
 def i_base_vector(vector):
     """
     Return number of `vector` in computation basis.
@@ -74,7 +74,7 @@ def i_base_vector(vector):
     return int(vector, 2)
 
 
-@functools.lru_cache()
+@functools.cache
 def base_vector(i, n):
     """
     Return `i`-th base vecotor  in full basis set in system with `n` particles.
@@ -92,20 +92,20 @@ def base_vector(i, n):
     return bin(i)[2:].zfill(n)
 
 
-@functools.lru_cache()
+@functools.cache
 def count_exitation(state):
     if isinstance(state, int):
         return count_exitation(bin(state)[2:])
     return sum(map(int, state))
 
 
-@functools.lru_cache()
+@functools.cache
 def combination(n, ex):
     position_combinations = itertools.combinations(range(n), ex)
     return sorted(sum(2**pow for pow in pos) for pos in position_combinations)
 
 
-@functools.lru_cache(maxsize=1024)
+@functools.cache
 def computation_basis(n, ex=None, only=False):
     """
     Parameters
@@ -149,7 +149,7 @@ def insert(system_state, subsystem_state, positions):
     return full_state
 
 
-@functools.lru_cache(maxsize=1024)
+@functools.cache
 def reindex(ivector, basis=None):
     if basis is None:
         return ivector
@@ -547,7 +547,7 @@ def uniform_chain_dc(i, j, n):
     raise ValueError("bad indexes")
 
 
-@functools.lru_cache(maxsize=1024)
+@functools.cache
 def calc_transmission_time(
     n,
     hamiltonian=None,

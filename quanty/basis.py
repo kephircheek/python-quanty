@@ -32,7 +32,7 @@ class BaseVector:
     def __str__(self):
         return self.binary()
 
-    @functools.lru_cache(maxsize=1024)
+    @functools.cache
     def binary(self):
         """
         Return `i`-th base vecotor  in full basis set in system with `n` particles.
@@ -49,7 +49,7 @@ class BaseVector:
     def insert(self, vector, on: set):
        return self.insert_(vector, tuple(on))
 
-    @functools.lru_cache(maxsize=1024)
+    @functools.cache
     def insert_(self, vector, on: tuple):
         full_vector = str(self)
         for pos, vector in zip(sorted(list(on)), str(vector)):
@@ -121,7 +121,7 @@ class ComputationBasis:
             return len(self._vectors)
         return 2**self._n
 
-    @functools.lru_cache(maxsize=1024)
+    @functools.cache
     def index(self, vector):  # reindex
         if self._ex is None:
             return int(vector)
@@ -156,14 +156,14 @@ class ComputationBasis:
         return ComputationBasis(self._n, self._ex, vectors=vectors)
 
 
-@functools.lru_cache(maxsize=1024)
+@functools.cache
 def combination(n, ex):
     # Maybe math.comb ?
     position_combinations = itertools.combinations(range(n), ex)
     return sorted(sum(2**pow for pow in pos) for pos in position_combinations)
 
 
-@functools.lru_cache(maxsize=1024)
+@functools.cache
 def computation_basis(n, ex=None, only=False):
     """
     Parameters
@@ -206,7 +206,7 @@ if __name__ == "__main__":
     doctest.testmod(verbose=True)
 
 
-@functools.lru_cache(maxsize=1024)
+@functools.cache
 def computation_basis_enumerated(n, ex=None, only=False):
     return OrderedDict(
         (BaseVector(b, n), i) for i, b in enumerate(computation_basis(n=n, ex=ex))
