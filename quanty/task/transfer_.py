@@ -2,7 +2,7 @@ import collections
 import functools
 import math
 import warnings
-from typing import Set
+from typing import Set, Callable
 from dataclasses import dataclass, asdict
 
 import numpy as np
@@ -54,6 +54,7 @@ class FitTransmissionTimeTask:
     tmax: float = None
     log10_dt: int = 1
     states: BaseVector = None
+    loss_function: Callable = None
 
     def run(self):
         tt, data = fit_transmission_time(
@@ -63,6 +64,7 @@ class FitTransmissionTimeTask:
             tmax=self.tmax,
             log10_dt=self.log10_dt,
             states=self.states,
+            loss_function=self.loss_function,
         )
         return FitTransmissionTimeResult(task=self, transmission_time=tt, data=data)
 
@@ -76,7 +78,13 @@ class FitTransmissionTimeResult:
 
 @functools.cache
 def fit_transmission_time(
-    problem: TransferAlongChain, decimals=5, tmin=None, tmax=None, log10_dt=1, states=None
+    problem: TransferAlongChain,
+    decimals=5,
+    tmin=None,
+    tmax=None,
+    log10_dt=1,
+    states=None,
+    loss_function=None,
 ):
     states = states or [
         s
@@ -90,6 +98,11 @@ def fit_transmission_time(
 
     tmin = tmin or problem.length // 2
     tmax = tmax or 2 * problem.length
+
+    def loss_function_default(m):
+        return np.mean(np.diag(m)[1:]).real
+
+    loss_function = loss_function_default if loss_function is None else loss_function
 
     i_elements = [
         basis.index(system_state.insert(state, problem.sender)) for state in states
@@ -111,19 +124,17 @@ def fit_transmission_time(
             if t > tmax:
                 continue
             U = U @ U_dt
-            loss = np.mean(
-                np.diag(
-                    matrix.reduce(
-                        sum(
-                            (matrix.element_impact(i, i, U) for i in i_elements),
-                            np.zeros((len(basis), len(basis))),
-                        ),  # digonal elememts are positive
-                        problem.receiver,
-                        basis=basis,
-                        hermitian=True,
-                    )
-                )[1:]
-            ).real
+            loss = loss_function(
+                matrix.reduce(
+                    sum(
+                        (matrix.element_impact(i, i, U) for i in i_elements),
+                        np.zeros((len(basis), len(basis))),
+                    ),  # digonal elememts are positive
+                    problem.receiver,
+                    basis=basis,
+                    hermitian=True,
+                )
+            )
             data.append((t, loss))
             if loss > max_loss:
                 max_loss = loss
