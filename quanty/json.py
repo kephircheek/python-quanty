@@ -5,6 +5,17 @@ import json
 
 def default(obj):
     data = {}
+
+    if obj.__class__.__name__ == "function":
+        data = {
+            "__class__": {
+                "__module__": obj.__module__,
+                "__name__": obj.__name__,
+            }
+        }
+        warnings.warn(f"function '{obj.__name__}' from '{obj.__module__}' dumped")
+        return data
+
     data = {
         "__class__": {
             "__module__": obj.__class__.__module__,
@@ -58,6 +69,7 @@ def object_hook(dct: dict):
             args, kwargs = dct["__init__"]
             return cls(*args, **kwargs)
 
+        return cls
         # if data := dct.get("__dict__"):
         #     instance = object.__new__(cls)
         #     instance.__dict__ = data
