@@ -2,8 +2,8 @@ import collections
 import functools
 import math
 import warnings
+from dataclasses import asdict, dataclass
 from typing import Set
-from dataclasses import dataclass, asdict
 
 import numpy as np
 import sympy as sp

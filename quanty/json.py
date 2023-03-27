@@ -1,7 +1,7 @@
-from dataclasses import is_dataclass, asdict
 import collections
-import warnings
 import json
+import warnings
+from dataclasses import asdict, is_dataclass
 
 
 def default(obj):

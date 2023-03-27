@@ -6,6 +6,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
+
 @dataclass(frozen=True)
 class BaseVector:
     vector: int
@@ -24,7 +25,6 @@ class BaseVector:
 
     def __int__(self):
         return self.vector
-
 
     def append(self, other):
         return BaseVector.from_str(str(self) + str(other))
@@ -47,7 +47,7 @@ class BaseVector:
         return bin(self.vector)[2:].zfill(self.n)
 
     def insert(self, vector, on: set):
-       return self.insert_(vector, tuple(on))
+        return self.insert_(vector, tuple(on))
 
     @functools.cache
     def insert_(self, vector, on: tuple):

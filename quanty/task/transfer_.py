@@ -17,9 +17,9 @@ from quanty.hamiltonian import Hamiltonian
 from quanty.optimize import brute_random
 from quanty.problem.transfer import TransferAlongChain, TransferZQCAlongChain
 from quanty.state.coherence import (
+    assert_coherence_matrix_match,
     coherence_matrix,
     coherence_matrix_unlinearize,
-    assert_coherence_matrix_match,
 )
 from quanty.state.lowtemp import init_low_temp_chain
 

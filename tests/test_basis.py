@@ -2,8 +2,8 @@ import json
 import math
 import unittest
 
-from quanty.basis import BaseVector, ComputationBasis
 import quanty.json
+from quanty.basis import BaseVector, ComputationBasis
 
 from . import _quanty
 
@@ -72,21 +72,21 @@ class TestComputationBasis(unittest.TestCase):
                                 "__module__": "quanty.basis",
                                 "__name__": "BaseVector",
                             },
-                            "__init__": [[], {'n': 2, 'vector': 0}],
+                            "__init__": [[], {"n": 2, "vector": 0}],
                         },
                         {
                             "__class__": {
                                 "__module__": "quanty.basis",
                                 "__name__": "BaseVector",
                             },
-                            "__init__": [[], {'n': 2, 'vector': 2}],
+                            "__init__": [[], {"n": 2, "vector": 2}],
                         },
                         {
                             "__class__": {
                                 "__module__": "quanty.basis",
                                 "__name__": "BaseVector",
                             },
-                            "__init__": [[], {'n': 2, 'vector': 1}],
+                            "__init__": [[], {"n": 2, "vector": 1}],
                         },
                     ],
                 },

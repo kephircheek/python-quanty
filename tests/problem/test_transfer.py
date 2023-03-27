@@ -1,8 +1,8 @@
 import unittest
 
 from quanty.geometry import Chain
-from quanty.model import Homogeneous, Model
 from quanty.hamiltonian import Hamiltonian
+from quanty.model import Homogeneous, Model
 from quanty.problem.transfer import TransferAlongChain
 
 

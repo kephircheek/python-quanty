@@ -1,8 +1,8 @@
 import itertools
 from collections import OrderedDict
 
-import sympy as sp
 import numpy as np
+import sympy as sp
 
 from quanty import matrix
 from quanty.basis import ComputationBasis
