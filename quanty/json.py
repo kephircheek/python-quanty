@@ -1,4 +1,5 @@
 from dataclasses import is_dataclass, asdict
+import collections
 import warnings
 import json
 
@@ -29,6 +30,16 @@ def default(obj):
 
     if isinstance(obj, (set, frozenset)):
         args = [list(obj)]
+
+    if isinstance(obj, collections.deque):
+        if len(obj) != 0 and obj.maxlen is not None:
+            args = [list(obj), obj.maxlen]
+
+        elif len(obj) == 0:
+            kwargs = {"maxlen": obj.maxlen}
+
+        elif obj.maxlen is None:
+            args = [list(obj)]
 
     if is_dataclass(obj):
         kwargs = {k: getattr(obj, k) for k in asdict(obj).keys()}
