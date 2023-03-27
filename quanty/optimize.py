@@ -24,9 +24,9 @@ def brute_random(
             instant_value = res.fun
 
         if verbose:
-            print(f"iter={n_iter} actual={instant_value:.5f}", end=" ")
+            print(f"iter={n_iter} actual={instant_value:.3e}", end=" ")
             if min_value is not None:
-                print(f"min={min_value:.5f}", end=" ")
+                print(f"min={min_value:.3e}", end=" ")
 
         if min_value is None or instant_value < min_value:
             min_value = instant_value
