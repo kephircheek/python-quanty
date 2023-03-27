@@ -99,7 +99,7 @@ def fit_transmission_time(
         basis.index(system_state.insert(state, problem.sender)) for state in states
     ]
 
-    t_transmition = None
+    t_transmission = None
     data = []
     # for dt in 10.0**np.arange(, (-decimals if decimals > 0 else 0) - 1, -1):
     dt_init = min(int(np.log10(abs(tmin - tmax))), log10_dt)
@@ -129,13 +129,13 @@ def fit_transmission_time(
             data.append((t, loss))
             if loss > max_loss:
                 max_loss = loss
-                t_transmition = t
+                t_transmission = t
 
         delta = 2 * dt
-        tmin = (t_transmition - delta) if t_transmition > delta else 0
-        tmax = t_transmition + delta
+        tmin = (t_transmission - delta) if t_transmission > delta else 0
+        tmax = t_transmission + delta
 
-    tt = np.round(t_transmition, decimals)
+    tt = np.round(t_transmission, decimals)
     return tt, data
 
 
