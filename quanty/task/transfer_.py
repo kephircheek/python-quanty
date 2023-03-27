@@ -2,8 +2,8 @@ import collections
 import functools
 import math
 import warnings
-from typing import Set, Callable
-from dataclasses import dataclass, asdict
+from dataclasses import asdict, dataclass, replace
+from typing import Callable, Set
 
 import numpy as np
 import sympy as sp
@@ -404,3 +404,126 @@ class TransferZQCPerfectlyResult:
         np.testing.assert_array_almost_equal(
             self.state_params, state_params, decimal=decimal
         )
+
+
+@dataclass(frozen=True)
+class FitTransferZQCPerfectlyTask:
+    task: TransferZQCPerfectlyTask
+    loss_function: Callable
+    method: str
+    method_kwargs: dict | None = None
+    polish: bool = True
+    fsolve: bool = True
+    verbose: bool = True
+    history_maxlen: int | None = None
+
+    def __post_init__(self):
+        object.__setattr__(
+            self, "_history", collections.deque(maxlen=self.history_maxlen)
+        )
+
+    def _transfer(self, transmission_time=None, features=None):
+        task = self.task
+        if transmission_time is None:
+            task = replace(task, features=list(features))
+        else:
+            raise NotImplementedError("'transmission_time' is not None")
+
+        r = task.run()
+
+        self._history.append(r)
+        return r
+
+    def loss(self, transmission_time, features):
+        r = self._transfer(transmission_time, features)
+        return (r.residual_max or 0) - self.loss_function(r.state_matrix)
+
+    def loss_by_features(self, features):
+        return self.loss(transmission_time=None, features=features)
+
+    def _print_status(self):
+        r = self._history[-1]
+        residual = r.residual_max
+        loss = self.loss_function(r.state_matrix)
+        if residual is None:
+            print(f"residual is None; loss = {loss:.3e}")
+        else:
+            print(f"residual = {residual:.3e}; loss = {loss:.3e}")
+
+    def _callback_verbose(self, *args, **kwargs):
+        self._print_status()
+
+    def verbosify(self, callback: Callable | None):
+        if callback is None:
+            return self._callback_verbose
+
+        def wrapper(*args, **kwargs):
+            self._print_status()
+            return callback(*args, **kwargs)
+
+        return wrapper
+
+    def run(self):
+
+        method_kwargs = (self.method_kwargs or {}).copy()
+
+        if self.verbose:
+            method_kwargs["callback"] = self.verbosify(method_kwargs.get("callback"))
+
+        if self.method == "dual_annealing":
+            method_kwargs.setdefault("bounds", self.task.problem._feature_bounds_default)
+            res = optimize.dual_annealing(self.loss_by_features, **method_kwargs)
+
+        elif self.method == "brute_random":
+            method_kwargs.setdefault("ranges", self.task.problem._feature_bounds_default)
+            res = brute_random(
+                self.loss_by_features, verbose=self.verbose, **method_kwargs
+            )
+
+        else:
+            raise ValueError(f"unsupported method: {self.method}")
+
+        def residual(features):
+            r = self._transfer(features=features)
+            return r.residual_max or 0
+
+        if self.polish:
+            print("[polish residuals]")
+            features_assumption = self._history[-1].task.features
+            res = optimize.minimize(residual, features_assumption, method="L-BFGS-B")
+            self._transfer(features=res.x)
+            self._print_status()
+
+        if self.fsolve:
+            print("[fsolve residuals]")
+
+            def residuals(features):
+                r = self._transfer(features=features)
+                return r.task.perfect_transferred_state_residuals(
+                    use_cache=False
+                )  # why False?
+
+            def fsolve(func, x0):
+                len_out = len(func(x0))
+                len_in = len(x0)
+                if len_out > len_in:
+                    return optimize.fsolve(
+                        lambda x: residuals(x[:len_in]),
+                        np.hstack((x0, [0] * (len_out - len_in))),
+                    )
+                return optimize.fsolve(
+                    lambda x: np.hstack((residuals(x), [0] * (len_in - len_out))),
+                    len_in,
+                )
+
+            features_assumption = self._history[-1].task.features
+            fsolve(residuals, features_assumption)
+            self._print_status()
+
+        return FitTransferZQCPerfectlyResult(task=self, history=tuple(self._history))
+
+
+@dataclass(frozen=True)
+class FitTransferZQCPerfectlyResult:
+    task: FitTransferZQCPerfectlyTask
+    history: tuple[TransferZQCPerfectlyResult]
