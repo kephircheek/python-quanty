@@ -464,7 +464,6 @@ class FitTransferZQCPerfectlyTask:
         return wrapper
 
     def run(self):
-
         method_kwargs = (self.method_kwargs or {}).copy()
 
         if self.verbose:

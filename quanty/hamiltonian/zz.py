@@ -14,7 +14,6 @@ def _zz_pure(n, dc=None, ex=None, dtype=np.float64):
     ham = zeros(len(basis), dtype=dtype)
 
     for i, j in itertools.combinations(range(n), 2):
-
         dc_ = dc(i, j)
         if dc_ == 0 or dc_ is None:
             continue
@@ -25,7 +24,6 @@ def _zz_pure(n, dc=None, ex=None, dtype=np.float64):
             (-1, 1, "10"),
             (1, 2, "11"),
         ]:
-
             n_remain = n - 2
             basis_remain = []
             if ex is None:

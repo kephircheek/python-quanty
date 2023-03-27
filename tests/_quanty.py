@@ -291,7 +291,6 @@ def reduce(
     for irow_sub, icol_sub in itertools.product(
         range(len(basis_sub)), range(len(basis_sub))
     ):
-
         i_state_row_sub = basis_sub[irow_sub]
         i_state_col_sub = basis_sub[icol_sub]
         if hermitian and irow_sub > icol_sub:
@@ -318,7 +317,6 @@ def reduce(
 
 
 def hxx(n, dc=None, deep=None, ex=None, dtype=np.float64):
-
     dc = dc or (lambda i, j: 1 / dtype(abs(i - j)) ** 3)
     basis = None if ex is None else computation_basis(n, ex=ex)
     basis_dict = {b: i for i, b in enumerate(basis or [])}
@@ -361,7 +359,6 @@ def hxx(n, dc=None, deep=None, ex=None, dtype=np.float64):
 
 
 def _hxx(n, dc=None, deep=None, ex=None, dtype=np.float64):
-
     dc = dc or (lambda i, j: 1 / dtype(abs(i - j)) ** 3)
 
     basis = None if ex is None else computation_basis(n, ex=ex)
@@ -421,7 +418,6 @@ def coherence_matrix(order, n, ex=None, var=("x", "y"), dtype=sp.sympify):
 
 
 def init_low_temp_chain(rho_sender, n, ex=None, dtype=np.complex128):
-
     n_sender = count_nodes(rho_sender.shape, ex=ex)
     sender_basis = computation_basis(n_sender, ex=ex)
     basis = computation_basis(n, ex=ex)
@@ -469,7 +465,6 @@ def exp(vector):
 
 
 def qevolution_span(rho, hamiltonian, dt=0, tmin=0, tmax=None):
-
     [D, V] = eigh(hamiltonian)
 
     if tmin != 0:

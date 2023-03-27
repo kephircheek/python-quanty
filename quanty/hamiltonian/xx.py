@@ -18,7 +18,6 @@ class XX(Hamiltonian):
 
 
 def _xx_qutip(n, dc):
-
     import qutip as qp
     from qutip import qeye
     from qutip import sigmax as sx
@@ -44,7 +43,6 @@ def _xx_pure(n, dc=None, ex=None, dtype=np.float64):
     ham = zeros(len(basis), dtype=dtype)
 
     for i, j in itertools.combinations(range(n), 2):
-
         dc_ = dc(i, j)
         if dc_ == 0 or dc_ is None:
             continue
