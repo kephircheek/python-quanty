@@ -5,14 +5,14 @@ from dataclasses import replace
 import numpy as np
 import sympy as sp
 
-import quanty.tools.json
 import quanty.json
+import quanty.tools.json
 from quanty.geometry import Chain, UniformChain, ZigZagChain
 from quanty.hamiltonian import XX, XXZ, Hamiltonian
 from quanty.model import Homogeneous, Model
+from quanty.problem.transfer import TransferZQCAlongChain
 from quanty.task.transfer import ZeroCoherenceTransfer
 from quanty.task.transfer_ import FitTransmissionTimeTask, TransferZQCPerfectlyTask
-from quanty.problem.transfer import TransferAlongChain
 
 from . import PATH_ASSETS
 
@@ -34,7 +34,7 @@ class TestZeroCoherenceTransferEx1N15S3A3(unittest.TestCase):
         self.task = ZeroCoherenceTransfer.init_classic(
             ham, length=15, n_sender=3, n_ancillas=3, excitations=1
         )
-        self.problem = TransferAlongChain.init_classic(
+        self.problem = TransferZQCAlongChain.init_classic(
             ham, length=15, n_sender=3, n_ancillas=3, excitations=1
         )
 
@@ -50,7 +50,9 @@ class TestZeroCoherenceTransferEx1N15S3A3(unittest.TestCase):
 
     def test_sender_params_number_in_transfer_perfectly_task(self):
         task = TransferZQCPerfectlyTask(self.problem, transmission_time=None)
-        self.assertEqual(len(task.sender_params), (len(self.task.receiver) - 1) ** 2 + 2)
+        self.assertEqual(
+            len(task.problem.sender_params), (len(self.task.receiver) - 1) ** 2 + 2
+        )
 
     def test_sender_params_number(self):
         self.assertEqual(
@@ -180,7 +182,7 @@ class TestTransferZQCPerfectlyTransferEx3N9S3A0(unittest.TestCase):
         geometry = ZigZagChain.from_two_chain(2, 0.3)
         model = Homogeneous(geometry, h_angle=0.74)
         hamiltonian = XXZ(model)
-        problem = TransferAlongChain.init_classic(
+        problem = TransferZQCAlongChain.init_classic(
             hamiltonian=hamiltonian,
             length=length,
             n_sender=n_sender,
@@ -198,7 +200,7 @@ class TestDump2JSON(unittest.TestCase):
         geometry = UniformChain()
         model = Homogeneous(geometry)
         ham = XX(model)
-        problem = TransferAlongChain.init_classic(
+        problem = TransferZQCAlongChain.init_classic(
             ham, length=9, n_sender=3, excitations=3
         )
         problem_json = quanty.json.dumps(problem)

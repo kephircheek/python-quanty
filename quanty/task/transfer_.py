@@ -15,13 +15,13 @@ from quanty.basis import BaseVector, ComputationBasis
 from quanty.geometry.chain import Chain
 from quanty.hamiltonian import Hamiltonian
 from quanty.optimize import brute_random
+from quanty.problem.transfer import TransferAlongChain, TransferZQCAlongChain
 from quanty.state.coherence import (
     coherence_matrix,
     coherence_matrix_unlinearize,
     assert_coherence_matrix_match,
 )
 from quanty.state.lowtemp import init_low_temp_chain
-from quanty.problem.transfer import TransferAlongChain
 
 
 def as_real_imag(value):
@@ -29,15 +29,6 @@ def as_real_imag(value):
         return value.as_real_imag()
     except AttributeError:
         return value.real, value.imag
-
-
-def free_corners(mat: matrix.Matrix) -> matrix.Matrix:
-    """Heuristic rule to transform non compability matrix."""
-    for i in range(mat.shape[0] - 1):
-        mat[i, -1] = 0
-        mat[-1, i] = 0
-
-    return mat
 
 
 def swap_corners(rho: matrix.Matrix) -> matrix.Matrix:
@@ -78,7 +69,7 @@ class FitTransmissionTimeResult:
 
 @functools.cache
 def fit_transmission_time(
-    problem: TransferAlongChain,
+    problem: TransferZQCAlongChain,
     decimals=5,
     tmin=None,
     tmax=None,
@@ -150,68 +141,17 @@ def fit_transmission_time(
 
 @dataclass(frozen=True)
 class TransferZQCPerfectlyTask:
-    problem: TransferAlongChain
+    problem: TransferZQCAlongChain
     transmission_time: float
-    features = None
+    features: list[float] = None
 
     def __post_init__(self):
         object.__setattr__(self, "_receiver_state_impacts", None)
 
-    def _is_extra_element(self, i, j):
-        """
-        Heuristic rule for extra elements in zero coherence matrix.
-        """
-        width = len(self.problem.sender_basis)
-        return (i != j) and (((i + 1) == width) or ((j + 1) == width))
-
-    @functools.cached_property
-    def sender_extra_params(self):
-        variables, _ = coherence_matrix(order=0, basis=self.problem.sender_basis)
-        return {
-            s: (i, j) for s, (i, j) in variables.items() if self._is_extra_element(i, j)
-        }
-
-    @functools.cached_property
-    def _sender_state_and_variables(self):
-        variables, zero_coherence = coherence_matrix(
-            order=0, basis=self.problem.sender_basis
-        )
-        state = free_corners(zero_coherence)
-        vs = {
-            s: (i, j)
-            for s, (i, j) in variables.items()
-            if not self._is_extra_element(i, j)
-        }
-        return vs, state
-
-    @functools.cached_property
-    def sender_state(self):
-        _, state = self._sender_state_and_variables
-        return state
-
-    @functools.cached_property
-    def sender_params(self):
-        vs, _ = self._sender_state_and_variables
-        return vs
-
-    @functools.cached_property
-    def initial_state(self):
-        state = init_low_temp_chain(
-            self.sender_state,
-            self.problem.basis,
-            sender_basis=self.problem.sender_basis,
-            dtype=np.object_,
-        )
-        return state
-
-    @functools.cached_property
-    def initial_state_dok(self):
-        return tuple(matrix.todok(self.initial_state, up_right=False))
-
     @functools.cached_property
     def _free_symbol_impacts_to_ext_receiver(self):
         U = self.problem.U(self.transmission_time)
-        rho_init_dok = self.initial_state_dok
+        rho_init_dok = self.problem.initial_state_dok
         return {
             s: matrix.reduce(
                 self._free_symbol_impact(s, rho_init_dok, U),
@@ -220,7 +160,7 @@ class TransferZQCPerfectlyTask:
                 subsystem_basis=self.problem.ext_receiver_basis,
                 hermitian=False,
             )
-            for s in self.sender_params
+            for s in self.problem.sender_params
         }
 
     @staticmethod
@@ -247,14 +187,14 @@ class TransferZQCPerfectlyTask:
         Unitary transform to drop unnecessary elements in receiver.
         """
         u = np.eye(len(self.problem.ext_receiver_basis), dtype=complex)
-        if self.features is None:
+        if self.features is None or len(self.problem.sender) == self.problem.ex:
             return u
 
-        if self.ex == 1:
+        if self.problem.ex == 1:
             u_block = matrix.unitary_transform_parameterized(self.features)
             u[1:, 1:] = u_block
 
-        elif self.ex == 2:
+        elif self.problem.ex == 2:
             ex1_block_width = len(self.problem.ext_receiver)
             ex1_block_n_features = ex1_block_width**2 - ex1_block_width
             b1_features = self.features[:ex1_block_n_features]
@@ -266,7 +206,7 @@ class TransferZQCPerfectlyTask:
             u[ex1_block_width + 1 :, ex1_block_width + 1 :] = b2_u
 
         else:
-            raise ValueError(f"unsupported excitation number: {self.ex}")
+            raise ValueError(f"unsupported excitation number: {self.problem.ex}")
 
         return u
 
@@ -312,7 +252,7 @@ class TransferZQCPerfectlyTask:
         return impacts2r
 
     def receiver_state(self, decimals=None, use_cache=True) -> sp.MutableDenseMatrix:
-        mat = sp.Matrix(sp.ZeroMatrix(*self.sender_state.shape))
+        mat = sp.Matrix(sp.ZeroMatrix(*self.problem.sender_state.shape))
         for p, impact in self.receiver_state_impacts(use_cache=use_cache).items():
             if decimals is not None:
                 impact = impact.round(decimals)
@@ -339,7 +279,7 @@ class TransferZQCPerfectlyTask:
     def linearize_matrix_by_sender_params(self, mat):
         # warnings.warn("crutch: use heuristic knowledge about imaginary part name ('y')")
         stack = []
-        for p, (i, j) in self.sender_params.items():
+        for p, (i, j) in self.problem.sender_params.items():
             real, image = as_real_imag(mat[i, j])
             if str(p)[0] == "y":
                 stack.append(image)
@@ -350,7 +290,7 @@ class TransferZQCPerfectlyTask:
     def perfect_transferred_state_system(self, use_cache=True):
         params_impact = self.receiver_state_impacts_reversed(use_cache=use_cache)
         impacts_stack = []
-        for parameter in self.sender_params:
+        for parameter in self.problem.sender_params:
             param_impact = params_impact[parameter]
             impacts_stack.append(self.linearize_matrix_by_sender_params(param_impact))
 
@@ -358,7 +298,7 @@ class TransferZQCPerfectlyTask:
         A -= np.eye(*A.shape)  # subtract right part
         b = np.zeros(A.shape[0])
 
-        norm = [(1 if i == j else 0) for (i, j) in self.sender_params.values()]
+        norm = [(1 if i == j else 0) for (i, j) in self.problem.sender_params.values()]
         A[0, :] = norm  # replace equation of x00 with trace rule (trace(rho) = 1)
         b[0] = 1  # the sum equals one
         return A, b
@@ -366,13 +306,13 @@ class TransferZQCPerfectlyTask:
     def perfect_transferred_state_params(self, use_cache=True):  # find_perfect_state
         A, b = self.perfect_transferred_state_system(use_cache=use_cache)
         result = np.linalg.solve(A, b)
-        return collections.OrderedDict(zip(self.sender_params, result))
+        return collections.OrderedDict(zip(self.problem.sender_params, result))
 
     def perfect_transferred_state_residuals(self, use_cache=True) -> np.ndarray:
         """
         Return sum of extra receiver elements witch should be zero.
         """
-        extra_elements_indices = set(self.sender_extra_params.values())
+        extra_elements_indices = set(self.problem.sender_extra_params.values())
 
         def as_real_imag(value):
             return value.real, value.imag
