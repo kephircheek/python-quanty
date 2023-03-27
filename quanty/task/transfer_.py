@@ -351,10 +351,17 @@ class TransferZQCPerfectlyResult:
     state_params: list[float]
     residual_max: float = None
 
-    def assert_state_params(self, decimal=14):
-        sender_state = coherence_matrix_unlinearize(
-            0, self.task.problem.sender_basis, self.state_params
+    @property
+    def state_matrix(self):
+        return coherence_matrix_unlinearize(
+            order=0,
+            basis=self.task.problem.sender_basis,
+            params=self.state_params,
+            ignore=self.task.problem._is_extra_element,
         )
+
+    def assert_state_params(self, decimal=14):
+        sender_state = self.state_matrix
         state = init_low_temp_chain(
             sender_state,
             self.task.problem.basis,

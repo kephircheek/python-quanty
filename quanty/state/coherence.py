@@ -49,10 +49,12 @@ def assert_coherence_matrix_match(order, basis, mat, decimal=14):
     np.testing.assert_almost_equal(residual_max, 0, decimal=decimal)
 
 
-def coherence_matrix_unlinearize(order, basis, params, dtype=np.ndarray):
+def coherence_matrix_unlinearize(order, basis, params, ignore=None, dtype=np.ndarray):
     mat = matrix.zeros(len(basis), dtype=dtype)
     params = list(reversed(params))
     for i, j, real in coherence_matrix_elements(order, basis):
+        if ignore is not None and ignore(i, j):
+            continue
         p = params.pop()
         if real:
             mat[i, j] += p
