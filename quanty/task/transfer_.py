@@ -30,13 +30,6 @@ def as_real_imag(value):
     except AttributeError:
         return value.real, value.imag
 
-
-def swap_corners(rho: matrix.Matrix) -> matrix.Matrix:
-    rho_: matrix.Matrix = rho.copy()
-    rho_[0, 0], rho_[-1, -1] = rho_[-1, -1], rho_[0, 0]
-    return rho_
-
-
 @dataclass(frozen=True)
 class FitTransmissionTimeTask:
     problem: TransferAlongChain
@@ -147,6 +140,11 @@ class TransferZQCPerfectlyTask:
 
     def __post_init__(self):
         object.__setattr__(self, "_receiver_state_impacts", None)
+
+    def swap_corners(self, rho: matrix.Matrix) -> matrix.Matrix:
+        rho_: matrix.Matrix = rho.copy()
+        rho_[0, 0], rho_[-1, -1] = rho_[-1, -1], rho_[0, 0]
+        return rho_
 
     @functools.cached_property
     def _free_symbol_impacts_to_ext_receiver(self):
@@ -261,7 +259,7 @@ class TransferZQCPerfectlyTask:
 
     def _heuristic_receiver_reversing(self, receiver_rho: matrix.Matrix) -> matrix.Matrix:
         receiver_basis_reversed = self.problem.receiver_basis.reversed()
-        return swap_corners(
+        return self.swap_corners(
             self.problem.receiver_basis.reorder(receiver_rho, receiver_basis_reversed)
         )
 
