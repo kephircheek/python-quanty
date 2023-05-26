@@ -121,7 +121,6 @@ class ComputationBasis:
             return len(self._vectors)
         return 2**self._n
 
-    @functools.cache
     def index(self, vector):  # reindex
         if self._ex is None:
             return int(vector)
