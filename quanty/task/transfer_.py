@@ -30,6 +30,7 @@ def as_real_imag(value):
     except AttributeError:
         return value.real, value.imag
 
+
 @dataclass(frozen=True)
 class FitTransmissionTimeTask:
     problem: TransferAlongChain
@@ -476,6 +477,10 @@ class FitTransferZQCPerfectlyTask:
             res = brute_random(
                 self.loss_by_features, verbose=self.verbose, **method_kwargs
             )
+
+        if self.method == "differential_evolution":
+            method_kwargs.setdefault("bounds", self.task.problem._feature_bounds_default)
+            res = optimize.differential_evolution(self.loss_by_features, **method_kwargs)
 
         else:
             raise ValueError(f"unsupported method: {self.method}")
