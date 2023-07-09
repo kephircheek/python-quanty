@@ -3,6 +3,7 @@ import functools
 import math
 import warnings
 from dataclasses import asdict, dataclass, replace
+from datetime import datetime
 from typing import Callable, Set
 
 import numpy as np
@@ -444,10 +445,13 @@ class FitTransferZQCPerfectlyTask:
         r = self._history[-1]
         residual = r.residual_max
         loss = self.loss_function(r.state_matrix)
+        print(f"[{datetime.now().isoformat()}]", end="")
         if residual is None:
-            print(f"residual is None; loss = {loss:.3e}")
+            print(" residual is None;", end="")
         else:
-            print(f"residual = {residual:.3e}; loss = {loss:.3e}")
+            print(f" residual = {residual:.3e};", end="")
+        print(f" loss = {loss:.3e}", end="")
+        print()
 
     def _callback_verbose(self, *args, **kwargs):
         self._print_status()
